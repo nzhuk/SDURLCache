@@ -475,21 +475,23 @@ static NSDateFormatter* CreateDateFormatter(NSString *format)
 
     NSURLCacheStoragePolicy storagePolicy = cachedResponse.storagePolicy;
     if ((storagePolicy == NSURLCacheStorageAllowed || (storagePolicy == NSURLCacheStorageAllowedInMemoryOnly && ignoreMemoryOnlyStoragePolicy))
-        && [cachedResponse.response isKindOfClass:[NSHTTPURLResponse self]]
         && cachedResponse.data.length < self.diskCapacity)
     {
-        NSDictionary *headers = [(NSHTTPURLResponse *)cachedResponse.response allHeaderFields];
-        // RFC 2616 section 13.3.4 says clients MUST use Etag in any cache-conditional request if provided by server
-        if (![headers objectForKey:@"Etag"])
-        {
-            NSDate *expirationDate = [SDURLCache expirationDateFromHeaders:headers
-                                                            withStatusCode:((NSHTTPURLResponse *)cachedResponse.response).statusCode];
-            if (!expirationDate || [expirationDate timeIntervalSinceNow] - minCacheInterval <= 0)
-            {
-                // This response is not cacheable, headers said
-                return;
-            }
-        }
+		if([cachedResponse.response isKindOfClass:[NSHTTPURLResponse self]])
+		{
+			NSDictionary *headers = [(NSHTTPURLResponse *)cachedResponse.response allHeaderFields];
+			// RFC 2616 section 13.3.4 says clients MUST use Etag in any cache-conditional request if provided by server
+			if (![headers objectForKey:@"Etag"])
+			{
+				NSDate *expirationDate = [SDURLCache expirationDateFromHeaders:headers
+																withStatusCode:((NSHTTPURLResponse *)cachedResponse.response).statusCode];
+				if (!expirationDate || [expirationDate timeIntervalSinceNow] - minCacheInterval <= 0)
+				{
+					// This response is not cacheable, headers said
+					return;
+				}
+			}
+		}
 
         NSInvocationOperation *operation = [[NSInvocationOperation alloc] initWithTarget:self
                                                                             selector:@selector(storeToDisk:)
