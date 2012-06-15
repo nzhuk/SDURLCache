@@ -58,6 +58,9 @@ static NSDateFormatter* CreateDateFormatter(NSString *format)
 
 + (NSURLRequest *)canonicalRequestForRequest:(NSURLRequest *)request
 {
+	if(request == nil)
+		return nil;
+	
     NSString *string = request.URL.absoluteString;
     NSRange hash = [string rangeOfString:@"#"];
     if (hash.location == NSNotFound)
@@ -70,6 +73,9 @@ static NSDateFormatter* CreateDateFormatter(NSString *format)
 
 + (NSString *)cacheKeyForURL:(NSURL *)url
 {
+	if(url == nil)
+		return nil;
+	
     const char *str = [url.absoluteString UTF8String];
     unsigned char r[CC_MD5_DIGEST_LENGTH];
     CC_MD5(str, strlen(str), r);
