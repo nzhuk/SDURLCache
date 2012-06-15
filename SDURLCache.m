@@ -429,21 +429,24 @@ static NSDateFormatter* CreateDateFormatter(NSString *format)
 
 - (id)initWithMemoryCapacity:(NSUInteger)memoryCapacity diskCapacity:(NSUInteger)diskCapacity diskPath:(NSString *)path
 {
-    // iOS 5 implements disk caching. SDURLCache then disables itself at runtime if the current device OS
-    // version is 5 or greater
-    NSArray *version = [[UIDevice currentDevice].systemVersion componentsSeparatedByString:@"."];
-    disabled = [[version objectAtIndex:0] intValue] >= 5;
+    // iOS 5 implements disk caching, but it doesn't support caching of HTTPS URLs, so this class will be enabled also on iOS5.
+	// NSURLCache also seems to "forget" about some already cached entries after a memory warning and URL loading system ends up redownloading them from the network.
 
-    if (disabled)
-    {
-        // iOS NSURLCache doesn't accept a full path but a single path component
-        path = [path lastPathComponent];
-    }
-
+	// iOS NSURLCache doesn't accept a full path but a single path component
+	path = [path lastPathComponent];
+	
     if ((self = [super initWithMemoryCapacity:memoryCapacity diskCapacity:diskCapacity diskPath:path]) && !disabled)
     {
         self.minCacheInterval = kSDURLCacheInfoDefaultMinCacheInterval;
-        self.diskCachePath = path;
+		
+		// On iOS, NSURLCache creates a sqlite3 *.db file to Library/Caches/$ApplicationBundleID/$path by default
+		// SDURLCache assumes that 'path' is a full path which either doesn't exist or points to a directory.
+		// To be able to store individual files under the given cache path, we need to create it ourselves
+		NSString *bundleID = [[NSBundle mainBundle] objectForInfoDictionaryKey:(NSString *)kCFBundleIdentifierKey];
+		NSURL *diskCacheDirectory = [[[NSFileManager defaultManager] URLsForDirectory:NSCachesDirectory inDomains:NSUserDomainMask] lastObject];
+		diskCacheDirectory = [[[diskCacheDirectory URLByAppendingPathComponent:bundleID] URLByAppendingPathComponent:path] URLByAppendingPathExtension:@"sdurlcache"];
+		
+        self.diskCachePath = [diskCacheDirectory path];
 
         // Init the operation queue
         NSOperationQueue *queue = [[NSOperationQueue alloc] init];
